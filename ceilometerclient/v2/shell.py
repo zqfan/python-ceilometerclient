@@ -145,12 +145,33 @@ def do_sample_list(cc, args):
                          sortby=None)
 
 
+def _display_sample(sample):
+    fields = ['counter_name', 'user_id', 'resource_id',
+              'timestamp', 'message_id', 'source', 'counter_unit',
+              'counter_volume', 'project_id', 'resource_metadata',
+              'counter_type']
+    data = dict([(f.replace('counter_', ''), getattr(sample, f, ''))
+                 for f in fields])
+    utils.print_dict(data, wrap=72)
+
+
+@utils.arg('sample_id', metavar='<SAMPLE_ID>',
+           action=NotEmptyAction, help='ID of the sample to show.')
+def do_sample_show(cc, args):
+    '''Show an sample.'''
+    sample = cc.samples.get(args.sample_id)
+    if sample is None:
+        raise exc.CommandError('Sample not found: %s' % args.sample_id)
+    else:
+        _display_sample(sample)
+
+
 @utils.arg('--project-id', metavar='<PROJECT_ID>',
            help='Tenant to associate with sample '
                 '(only settable by admin users).')
 @utils.arg('--user-id', metavar='<USER_ID>',
            help='User to associate with sample '
-                '(only settable by admin users).')
+            '(only settable by admin users).')
 @utils.arg('-r', '--resource-id', metavar='<RESOURCE_ID>', required=True,
            help='ID of the resource.')
 @utils.arg('-m', '--meter-name', metavar='<METER_NAME>', required=True,
