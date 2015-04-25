@@ -1044,11 +1044,27 @@ def do_event_list(cc, args={}):
 
 @utils.arg('message_id', metavar='<message_id>', action=NotEmptyAction,
            help='The ID of the event. Should be a UUID.')
+@utils.arg('--human-readable', action='store_true',
+           help='Print a nice formatted table which friendly to user')
 def do_event_show(cc, args={}):
     """Show a particular event."""
     event = cc.events.get(args.message_id)
     fields = ['event_type', 'generated', 'traits', 'raw']
     data = dict([(f, getattr(event, f, '')) for f in fields])
+    if args.human_readable:
+        traits = []
+        for trait in data['traits']:
+            traits.append('%s = %s' % (trait['name'], trait['value']))
+        data['traits'] = ' \\n'.join(traits)
+        raw = []
+        for k in sorted(data['raw']):
+            if k != 'payload':
+                raw.append('%s = %s' % (k, data['raw'][k]))
+            else:
+                payload = data['raw']['payload']
+                for pk in sorted(payload):
+                    raw.append('payload.%s = %s' % (pk, payload[pk]))
+        data['raw'] = ' \\n'.join(raw)
     utils.print_dict(data, wrap=72)
 
 

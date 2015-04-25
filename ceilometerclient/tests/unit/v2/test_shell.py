@@ -1123,6 +1123,66 @@ class ShellEventListCommandTest(utils.BaseTestCase):
 ''', sys.stdout.getvalue())
 
 
+class ShellEventShowCommandTest(utils.BaseTestCase):
+
+    EVENT = {
+        "event_type": "compute.instance.create.start",
+        "generated": "2015-01-12T04:03:25.741471",
+        "message_id": "fb2bef58-88af-4380-8698-e0f18fcf452d",
+        "raw": {
+            "state": "building",
+            "name": "fake-name"
+        },
+        "traits": [{
+            "name": "state",
+            "type": "string",
+            "value": "building",
+        }],
+    }
+
+    def setUp(self):
+        super(ShellEventShowCommandTest, self).setUp()
+        self.cc = mock.Mock()
+        self.args = mock.Mock()
+        self.args.message_id = "fb2bef58-88af-4380-8698-e0f18fcf452d",
+        self.args.human_readable = False
+
+    @mock.patch('sys.stdout', new=six.StringIO())
+    def test_event_show(self):
+        ret_event = events.Event(mock.Mock(), self.EVENT)
+        self.cc.events.get.return_value = ret_event
+        ceilometer_shell.do_event_show(self.cc, self.args)
+        self.assertIn('''\
++------------+------------------------------------------------------------+
+| Property   | Value                                                      |
++------------+------------------------------------------------------------+
+| event_type | compute.instance.create.start                              |
+| generated  | 2015-01-12T04:03:25.741471                                 |
+''', sys.stdout.getvalue())
+        # the content of raw and traits row is unpredictable
+        lines = sys.stdout.getvalue().splitlines()
+        self.assertTrue(lines[5].startswith('| raw        |'))
+        self.assertTrue(lines[6].startswith('| traits     |'))
+
+    @mock.patch('sys.stdout', new=six.StringIO())
+    def test_event_show_human_readable(self):
+        ret_event = events.Event(mock.Mock(), self.EVENT)
+        self.cc.events.get.return_value = ret_event
+        self.args.human_readable = True
+        ceilometer_shell.do_event_show(self.cc, self.args)
+        self.assertEqual('''\
++------------+-------------------------------+
+| Property   | Value                         |
++------------+-------------------------------+
+| event_type | compute.instance.create.start |
+| generated  | 2015-01-12T04:03:25.741471    |
+| raw        | name = fake-name              |
+|            | state = building              |
+| traits     | state = building              |
++------------+-------------------------------+
+''', sys.stdout.getvalue())
+
+
 class ShellShadowedArgsTest(test_shell.ShellTestBase):
 
     def _test_shadowed_args_alarm(self, command, args, method):
